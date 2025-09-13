@@ -499,17 +499,19 @@ static bool close_stdout_required = true;
    call, once parse_long_options has succeeded.
    Meanwhile, we guarantee that the standard error stream is flushed,
    by inlining the last half of close_stdout as needed.  */
-static void maybe_close_stdout(void)
+static void
+maybe_close_stdout (void)
 {
-    if (close_stdout_required) {
-        close_stdout();
-        return;
-    }
-
-    int rc = close_stream(stderr);
-    if (rc != 0) {
-        _exit(EXIT_FAILURE);
-    }
+  if (close_stdout_required)
+  {
+    close_stdout ();
+    return;
+  }
+  
+  if (close_stream (stderr) != 0)
+  {
+    _exit (EXIT_FAILURE);
+  }
 }
 
 /* Like the 'error' function but handle any pending newline,
@@ -517,39 +519,18 @@ static void maybe_close_stdout(void)
 
 ATTRIBUTE_FORMAT ((__printf__, 2, 3))
 static void
-diagnose(int errnum, const char *fmt, ...)
+diagnose (int errnum, char const *fmt, ...)
 {
   if (progress_len > 0)
     {
-      fputc('\n', stderr);
+      fputc ('\n', stderr);
       progress_len = 0;
     }
 
-  if (!fmt)
-    fmt = "";
-
   va_list ap;
-  va_start(ap, fmt);
-  verror(0, errnum, fmt, ap);
-  va_end(ap);
-}
-
-static void out_str(const char *s)
-{
-  if (fputs(s, stdout) == EOF)
-    exit(EXIT_FAILURE);
-}
-
-static void out_printf2(const char *fmt, const char *a, const char *b)
-{
-  if (printf(fmt, a, b) < 0)
-    exit(EXIT_FAILURE);
-}
-
-static void out_printf1(const char *fmt, const char *a)
-{
-  if (printf(fmt, a) < 0)
-    exit(EXIT_FAILURE);
+  va_start (ap, fmt);
+  verror (0, errnum, fmt, ap);
+  va_end (ap);
 }
 
 void
@@ -560,14 +541,13 @@ usage (int status)
       emit_try_help ();
       exit (status);
     }
-
-  out_printf2 (_("\
+  
+  printf (_("\
 Usage: %s [OPERAND]...\n\
   or:  %s OPTION\n\
 "),
-              program_name, program_name);
-
-  out_str (_("\
+          program_name, program_name);
+  fputs (_("\
 Copy a file, converting and formatting according to the operands.\n\
 \n\
   bs=BYTES        read and write up to BYTES bytes at a time (default: 512);\n\
@@ -576,9 +556,8 @@ Copy a file, converting and formatting according to the operands.\n\
   conv=CONVS      convert the file as per the comma separated symbol list\n\
   count=N         copy only N input blocks\n\
   ibs=BYTES       read up to BYTES bytes at a time (default: 512)\n\
-"));
-
-  out_str (_("\
+"), stdout);
+  fputs (_("\
   if=FILE         read from FILE instead of standard input\n\
   iflag=FLAGS     read as per the comma separated symbol list\n\
   obs=BYTES       write BYTES bytes at a time (default: 512)\n\
@@ -590,9 +569,8 @@ Copy a file, converting and formatting according to the operands.\n\
                   'none' suppresses everything but error messages,\n\
                   'noxfer' suppresses the final transfer statistics,\n\
                   'progress' shows periodic transfer statistics\n\
-"));
-
-  out_str (_("\
+"), stdout);
+  fputs (_("\
 \n\
 N and BYTES may be followed by the following multiplicative suffixes:\n\
 c=1, w=2, b=512, kB=1000, K=1024, MB=1000*1000, M=1024*1024, xM=M,\n\
@@ -602,9 +580,8 @@ If N ends in 'B', it counts bytes not blocks.\n\
 \n\
 Each CONV symbol may be:\n\
 \n\
-"));
-
-  out_str (_("\
+"), stdout);
+  fputs (_("\
   ascii     from EBCDIC to ASCII\n\
   ebcdic    from ASCII to EBCDIC\n\
   ibm       from ASCII to alternate EBCDIC\n\
@@ -616,82 +593,67 @@ Each CONV symbol may be:\n\
   swab      swap every pair of input bytes\n\
   sync      pad every input block with NULs to ibs-size; when used\n\
             with block or unblock, pad with spaces rather than NULs\n\
-"));
-
-  out_str (_("\
+"), stdout);
+  fputs (_("\
   excl      fail if the output file already exists\n\
   nocreat   do not create the output file\n\
   notrunc   do not truncate the output file\n\
   noerror   continue after read errors\n\
   fdatasync  physically write output file data before finishing\n\
   fsync     likewise, but also write metadata\n\
-"));
-
-  out_str (_("\
+"), stdout);
+  fputs (_("\
 \n\
 Each FLAG symbol may be:\n\
 \n\
   append    append mode (makes sense only for output; conv=notrunc suggested)\n\
-"));
-
-#if defined(O_CIO) && O_CIO
-  out_str (_("  cio       use concurrent I/O for data\n"));
-#endif
-#if defined(O_DIRECT) && O_DIRECT
-  out_str (_("  direct    use direct I/O for data\n"));
-#endif
-
-  out_str (_("  directory  fail unless a directory\n"));
-
-#if defined(O_DSYNC) && O_DSYNC
-  out_str (_("  dsync     use synchronized I/O for data\n"));
-#endif
-#if defined(O_SYNC) && O_SYNC
-  out_str (_("  sync      likewise, but also for metadata\n"));
-#endif
-
-  out_str (_("  fullblock  accumulate full blocks of input (iflag only)\n"));
-
-#if defined(O_NONBLOCK) && O_NONBLOCK
-  out_str (_("  nonblock  use non-blocking I/O\n"));
-#endif
-#if defined(O_NOATIME) && O_NOATIME
-  out_str (_("  noatime   do not update access time\n"));
-#endif
+"), stdout);
+  if (O_CIO)
+    fputs (_("  cio       use concurrent I/O for data\n"), stdout);
+  if (O_DIRECT)
+    fputs (_("  direct    use direct I/O for data\n"), stdout);
+  fputs (_("  directory  fail unless a directory\n"), stdout);
+  if (O_DSYNC)
+    fputs (_("  dsync     use synchronized I/O for data\n"), stdout);
+  if (O_SYNC)
+    fputs (_("  sync      likewise, but also for metadata\n"), stdout);
+  fputs (_("  fullblock  accumulate full blocks of input (iflag only)\n"),
+         stdout);
+  if (O_NONBLOCK)
+    fputs (_("  nonblock  use non-blocking I/O\n"), stdout);
+  if (O_NOATIME)
+    fputs (_("  noatime   do not update access time\n"), stdout);
 #if HAVE_POSIX_FADVISE
-# if defined(O_NOCACHE) && O_NOCACHE
-  out_str (_("  nocache   Request to drop cache.  See also oflag=sync\n"));
-# endif
+  if (O_NOCACHE)
+    fputs (_("  nocache   Request to drop cache.  See also oflag=sync\n"),
+           stdout);
 #endif
-#if defined(O_NOCTTY) && O_NOCTTY
-  out_str (_("  noctty    do not assign controlling terminal from file\n"));
-#endif
-#if defined(HAVE_WORKING_O_NOFOLLOW) && HAVE_WORKING_O_NOFOLLOW
-  out_str (_("  nofollow  do not follow symlinks\n"));
-#endif
-#if defined(O_NOLINKS) && O_NOLINKS
-  out_str (_("  nolinks   fail if multiply-linked\n"));
-#endif
-#if defined(O_BINARY) && O_BINARY
-  out_str (_("  binary    use binary I/O for data\n"));
-#endif
-#if defined(O_TEXT) && O_TEXT
-  out_str (_("  text      use text I/O for data\n"));
-#endif
+  if (O_NOCTTY)
+    fputs (_("  noctty    do not assign controlling terminal from file\n"),
+           stdout);
+  if (HAVE_WORKING_O_NOFOLLOW)
+    fputs (_("  nofollow  do not follow symlinks\n"), stdout);
+  if (O_NOLINKS)
+    fputs (_("  nolinks   fail if multiply-linked\n"), stdout);
+  if (O_BINARY)
+    fputs (_("  binary    use binary I/O for data\n"), stdout);
+  if (O_TEXT)
+    fputs (_("  text      use text I/O for data\n"), stdout);
 
-  out_printf1 (_("\
+  const char *signal_name = (SIGINFO == SIGUSR1) ? "USR1" : "INFO";
+  printf (_("\
 \n\
 Sending a %s signal to a running 'dd' process makes it\n\
 print I/O statistics to standard error and then resume copying.\n\
 \n\
 Options are:\n\
 \n\
-"), SIGINFO == SIGUSR1 ? "USR1" : "INFO");
+"), signal_name);
 
-  out_str (HELP_OPTION_DESCRIPTION);
-  out_str (VERSION_OPTION_DESCRIPTION);
+  fputs (HELP_OPTION_DESCRIPTION, stdout);
+  fputs (VERSION_OPTION_DESCRIPTION, stdout);
   emit_ancillary_info (PROGRAM_NAME);
-
+  
   exit (status);
 }
 
@@ -703,81 +665,67 @@ enum { human_opts = (human_autoscale | human_round_to_nearest
 /* Ensure input buffer IBUF is allocated.  */
 
 static void
-alloc_ibuf(void)
+alloc_ibuf (void)
 {
   if (ibuf)
     return;
 
-  const size_t extra = (conversions_mask & C_SWAB) ? 1u : 0u;
-  const size_t base = (size_t) input_blocksize;
-  const size_t requested = base + extra;
-
-  if (requested < base)
+  size_t extra_byte = (conversions_mask & C_SWAB) ? 1 : 0;
+  size_t buffer_size = input_blocksize + extra_byte;
+  
+  ibuf = alignalloc (page_size, buffer_size);
+  if (!ibuf)
     {
       char hbuf[LONGEST_HUMAN_READABLE + 1];
-      error(EXIT_FAILURE, 0,
-            _("memory exhausted by input buffer of size %td bytes (%s)"),
-            (ptrdiff_t) input_blocksize,
-            human_readable(input_blocksize, hbuf,
-                           human_opts | human_base_1024, 1, 1));
+      error (EXIT_FAILURE, 0,
+             _("memory exhausted by input buffer of size %td bytes (%s)"),
+             input_blocksize,
+             human_readable (input_blocksize, hbuf,
+                             human_opts | human_base_1024, 1, 1));
     }
-
-  void *p = alignalloc(page_size, requested);
-  if (!p)
-    {
-      char hbuf[LONGEST_HUMAN_READABLE + 1];
-      error(EXIT_FAILURE, 0,
-            _("memory exhausted by input buffer of size %td bytes (%s)"),
-            (ptrdiff_t) input_blocksize,
-            human_readable(input_blocksize, hbuf,
-                           human_opts | human_base_1024, 1, 1));
-    }
-
-  ibuf = p;
 }
 
 /* Ensure output buffer OBUF is allocated/initialized.  */
 
 static void
-alloc_obuf(void)
+alloc_obuf (void)
 {
-  if (obuf != NULL)
+  if (obuf)
     return;
 
-  if ((conversions_mask & C_TWOBUFS) != 0)
-  {
-    void *p = alignalloc(page_size, output_blocksize);
-    if (p == NULL)
+  if (conversions_mask & C_TWOBUFS)
     {
-      char hbuf[LONGEST_HUMAN_READABLE + 1];
-      hbuf[0] = '\0';
-      error(EXIT_FAILURE, 0,
-            _("memory exhausted by output buffer of size %td bytes (%s)"),
-            output_blocksize,
-            human_readable(output_blocksize, hbuf,
-                           human_opts | human_base_1024, 1, 1));
-      return;
+      obuf = alignalloc (page_size, output_blocksize);
+      if (!obuf)
+        {
+          char hbuf[LONGEST_HUMAN_READABLE + 1];
+          error (EXIT_FAILURE, 0,
+                 _("memory exhausted by output buffer of size %td"
+                   " bytes (%s)"),
+                 output_blocksize,
+                 human_readable (output_blocksize, hbuf,
+                                 human_opts | human_base_1024, 1, 1));
+        }
     }
-    obuf = p;
-    return;
-  }
-
-  alloc_ibuf();
-  obuf = ibuf;
+  else
+    {
+      alloc_ibuf ();
+      obuf = ibuf;
+    }
 }
 
 static void
-translate_charset(const char *new_trans)
+translate_charset (char const *new_trans)
 {
-    if (new_trans == NULL) {
-        return;
-    }
-    const unsigned char *src = (const unsigned char *)new_trans;
-    for (unsigned int i = 0U; i < 256U; ++i) {
-        unsigned char idx = (unsigned char)trans_table[i];
-        trans_table[i] = src[idx];
-    }
-    translation_needed = true;
+  if (new_trans == NULL) {
+    return;
+  }
+  
+  for (int i = 0; i < 256; i++) {
+    unsigned char index = (unsigned char)trans_table[i];
+    trans_table[i] = new_trans[index];
+  }
+  translation_needed = true;
 }
 
 /* Return true if I has more than one bit set.  I must be nonnegative.  */
@@ -785,23 +733,22 @@ translate_charset(const char *new_trans)
 static inline bool
 multiple_bits_set (int i)
 {
-  unsigned int u = (unsigned int) i;
-  return (u & (u - 1U)) != 0U;
+  return (i & (i - 1)) != 0 && i != 0;
 }
 
 static bool
 abbreviation_lacks_prefix (char const *message)
 {
-    if (message == NULL) {
-        return false;
-    }
-
-    size_t len = strlen(message);
-    if (len < 2) {
-        return false;
-    }
-
-    return message[len - 2] == ' ';
+  if (message == NULL) {
+    return false;
+  }
+  
+  size_t len = strlen(message);
+  if (len < 2) {
+    return false;
+  }
+  
+  return message[len - 2] == ' ';
 }
 
 /* Print transfer statistics.  */
@@ -810,43 +757,33 @@ static void
 print_xfer_stats (xtime_t progress_time)
 {
   xtime_t now = progress_time ? progress_time : gethrxtime ();
-  static const char slash_s[] = "/s";
+  static char const slash_s[] = "/s";
   char hbuf[3][LONGEST_HUMAN_READABLE + sizeof slash_s];
   double delta_s;
-  const char *bytes_per_second;
-  const char *si = human_readable (w_bytes, hbuf[0], human_opts, 1, 1);
-  const char *iec = human_readable (w_bytes, hbuf[1],
+  char const *bytes_per_second;
+  char const *si = human_readable (w_bytes, hbuf[0], human_opts, 1, 1);
+  char const *iec = human_readable (w_bytes, hbuf[1],
                                     human_opts | human_base_1024, 1, 1);
 
   char *bpsbuf = hbuf[2];
-  size_t bpsbufsize = sizeof hbuf[2];
-
+  int bpsbufsize = sizeof hbuf[2];
   if (start_time < now)
     {
+      double XTIME_PRECISIONe0 = XTIME_PRECISION;
       xtime_t delta_xtime = now - start_time;
-      delta_s = (double)delta_xtime / (double)XTIME_PRECISION;
+      delta_s = delta_xtime / XTIME_PRECISIONe0;
       bytes_per_second = human_readable (w_bytes, bpsbuf, human_opts,
                                          XTIME_PRECISION, delta_xtime);
-
-      ptrdiff_t pos = bytes_per_second - bpsbuf;
-      if (pos >= 0 && (size_t)pos < bpsbufsize)
+      size_t bps_len = strlen (bytes_per_second);
+      if (bps_len + sizeof slash_s <= bpsbufsize)
         {
-          char *dst = bpsbuf + (size_t)pos;
-          size_t avail = bpsbufsize - (size_t)pos;
-          size_t used = strnlen (dst, avail);
-          if (used < avail)
-            {
-              size_t remaining = avail - used;
-              if (remaining > 0)
-                (void) snprintf (dst + used, remaining, "%s", slash_s);
-            }
+          memcpy (bpsbuf + bps_len, slash_s, sizeof slash_s);
         }
     }
   else
     {
       delta_s = 0;
-      if (bpsbufsize > 0)
-        (void) snprintf (bpsbuf, bpsbufsize, "%s B/s", _("Infinity"));
+      snprintf (bpsbuf, bpsbufsize, "%s B/s", _("Infinity"));
       bytes_per_second = bpsbuf;
     }
 
@@ -854,155 +791,156 @@ print_xfer_stats (xtime_t progress_time)
     fputc ('\r', stderr);
 
   char delta_s_buf[24];
-  (void) snprintf (delta_s_buf, sizeof delta_s_buf,
-                   progress_time ? "%.0f s" : "%g s", delta_s);
+  snprintf (delta_s_buf, sizeof delta_s_buf,
+            progress_time ? "%.0f s" : "%g s", delta_s);
 
   int stats_len;
   if (abbreviation_lacks_prefix (si))
     {
       stats_len = fprintf (stderr,
-                           ngettext ("%jd byte copied, %s, %s",
-                                     "%jd bytes copied, %s, %s",
-                                     select_plural (w_bytes)),
-                           w_bytes, delta_s_buf, bytes_per_second);
+                          ngettext ("%jd byte copied, %s, %s",
+                                    "%jd bytes copied, %s, %s",
+                                    select_plural (w_bytes)),
+                          w_bytes, delta_s_buf, bytes_per_second);
     }
   else if (abbreviation_lacks_prefix (iec))
     {
       stats_len = fprintf (stderr,
-                           _("%jd bytes (%s) copied, %s, %s"),
-                           w_bytes, si, delta_s_buf, bytes_per_second);
+                          _("%jd bytes (%s) copied, %s, %s"),
+                          w_bytes, si, delta_s_buf, bytes_per_second);
     }
   else
     {
       stats_len = fprintf (stderr,
-                           _("%jd bytes (%s, %s) copied, %s, %s"),
-                           w_bytes, si, iec, delta_s_buf, bytes_per_second);
+                          _("%jd bytes (%s, %s) copied, %s, %s"),
+                          w_bytes, si, iec, delta_s_buf, bytes_per_second);
     }
 
   if (progress_time)
     {
-      if (0 <= stats_len && stats_len < progress_len)
+      if (stats_len >= 0 && stats_len < progress_len)
         fprintf (stderr, "%*s", progress_len - stats_len, "");
       progress_len = stats_len;
     }
   else
-    fputc ('\n', stderr);
+    {
+      fputc ('\n', stderr);
+    }
 
   reported_w_bytes = w_bytes;
 }
 
-static void print_stats(void)
+static void
+print_stats (void)
 {
-    if (status_level == STATUS_NONE)
-        return;
+  if (status_level == STATUS_NONE)
+    return;
 
-    if (progress_len > 0) {
-        if (fputc('\n', stderr) == EOF)
-            return;
-        progress_len = 0;
+  if (progress_len > 0)
+    {
+      fputc ('\n', stderr);
+      progress_len = 0;
     }
 
-    if (fprintf(stderr,
-                _("%jd+%jd records in\n"
-                  "%jd+%jd records out\n"),
-                (intmax_t)r_full, (intmax_t)r_partial,
-                (intmax_t)w_full, (intmax_t)w_partial) < 0)
-        return;
+  fprintf (stderr,
+           _("%jd+%jd records in\n"
+             "%jd+%jd records out\n"),
+           r_full, r_partial, w_full, w_partial);
 
-    if (r_truncate != 0) {
-        if (fprintf(stderr,
-                    ngettext("%jd truncated record\n",
-                             "%jd truncated records\n",
-                             select_plural(r_truncate)),
-                    (intmax_t)r_truncate) < 0)
-            return;
+  if (r_truncate != 0)
+    {
+      fprintf (stderr,
+               ngettext ("%jd truncated record\n",
+                         "%jd truncated records\n",
+                         select_plural (r_truncate)),
+               r_truncate);
     }
 
-    if (status_level == STATUS_NOXFER)
-        return;
-
-    print_xfer_stats(0);
+  if (status_level != STATUS_NOXFER)
+    {
+      print_xfer_stats (0);
+    }
 }
 
 /* An ordinary signal was received; arrange for the program to exit.  */
 
-static void
-interrupt_handler(int sig)
+static void interrupt_handler(int sig)
 {
-#if !defined(SA_RESETHAND) || !(SA_RESETHAND)
-  (void) signal(sig, SIG_DFL);
-#endif
-  interrupt_signal = sig;
+    if (!SA_RESETHAND)
+    {
+        if (signal(sig, SIG_DFL) == SIG_ERR)
+        {
+            return;
+        }
+    }
+    interrupt_signal = sig;
 }
 
 /* An info signal was received; arrange for the program to print status.  */
 
-#include <signal.h>
-
 static void siginfo_handler(int sig)
 {
-#if SA_NOCLDSTOP
-    (void)sig;
-#else
-    (void)signal(sig, siginfo_handler);
-#endif
+    if (!SA_NOCLDSTOP)
+    {
+        struct sigaction sa;
+        sa.sa_handler = siginfo_handler;
+        sigemptyset(&sa.sa_mask);
+        sa.sa_flags = 0;
+        sigaction(sig, &sa, NULL);
+    }
     info_signal_count++;
 }
 
 /* Install the signal handlers.  */
 
 static void
-install_signal_handlers(void)
+install_signal_handlers (void)
 {
-  const bool catch_siginfo = !((SIGINFO == SIGUSR1) && getenv("POSIXLY_CORRECT"));
+  bool catch_siginfo = !(SIGINFO == SIGUSR1 && getenv("POSIXLY_CORRECT"));
 
 #if SA_NOCLDSTOP
-
   struct sigaction act;
-  struct sigaction old_int;
-  bool catch_info = catch_siginfo;
-  bool catch_int = false;
-
-  if (sigaction(SIGINT, NULL, &old_int) == 0)
-    catch_int = (old_int.sa_handler != SIG_IGN);
-
+  struct sigaction old_act;
+  
   sigemptyset(&caught_signals);
-  if (catch_info)
+  
+  if (catch_siginfo) {
     sigaddset(&caught_signals, SIGINFO);
-  if (catch_int)
-    sigaddset(&caught_signals, SIGINT);
-
+  }
+  
+  if (sigaction(SIGINT, NULL, &old_act) == 0) {
+    if (old_act.sa_handler != SIG_IGN) {
+      sigaddset(&caught_signals, SIGINT);
+    }
+  }
+  
   act.sa_mask = caught_signals;
-
-  if (catch_info)
-    {
-      act.sa_handler = siginfo_handler;
-      act.sa_flags = 0;
-      sigaction(SIGINFO, &act, NULL);
-    }
-
-  if (catch_int)
-    {
-      act.sa_handler = interrupt_handler;
-      act.sa_flags = SA_NODEFER | SA_RESETHAND;
-      sigaction(SIGINT, &act, NULL);
-    }
-
+  act.sa_flags = 0;
+  
+  if (catch_siginfo && sigismember(&caught_signals, SIGINFO)) {
+    act.sa_handler = siginfo_handler;
+    sigaction(SIGINFO, &act, NULL);
+  }
+  
+  if (sigismember(&caught_signals, SIGINT)) {
+    act.sa_handler = interrupt_handler;
+    act.sa_flags = SA_NODEFER | SA_RESETHAND;
+    sigaction(SIGINT, &act, NULL);
+  }
 #else
-
-  if (catch_siginfo)
-    {
-      if (signal(SIGINFO, siginfo_handler) != SIG_ERR)
-        siginterrupt(SIGINFO, 1);
-    }
-
-  {
-    void (*prev)(int) = signal(SIGINT, SIG_IGN);
-    if (prev != SIG_IGN && prev != SIG_ERR)
-      {
-        signal(SIGINT, interrupt_handler);
-        siginterrupt(SIGINT, 1);
-      }
+  void (*old_handler)(int);
+  
+  if (catch_siginfo) {
+    signal(SIGINFO, siginfo_handler);
+    siginterrupt(SIGINFO, 1);
+  }
+  
+  old_handler = signal(SIGINT, SIG_IGN);
+  if (old_handler != SIG_IGN) {
+    signal(SIGINT, interrupt_handler);
+    siginterrupt(SIGINT, 1);
+  } else {
+    signal(SIGINT, SIG_IGN);
   }
 #endif
 }
@@ -1013,58 +951,44 @@ install_signal_handlers(void)
    consider EBADF to be an error.  Do not process signals.  This all
    differs somewhat from functions like ifdatasync and ifsync.  */
 static int
-iclose(int fd)
+iclose (int fd)
 {
-  int saw_eintr = 0;
-
-  for (;;)
-  {
-    if (close(fd) == 0)
-      return 0;
-
-    if (errno == EINTR)
+  while (close (fd) != 0)
     {
-      saw_eintr = 1;
-      continue;
+      if (errno == EINTR)
+        continue;
+      if (errno == EBADF)
+        break;
+      return -1;
     }
-
-    if (saw_eintr && errno == EBADF)
-      return 0;
-
-    return -1;
-  }
+  return 0;
 }
 
 static int synchronize_output (void);
 
-static void report_close_error(int saved_errno, const char *msg, const char *file)
-{
-  error(EXIT_FAILURE, saved_errno, msg, quoteaf(file));
-}
-
 static void
-cleanup(void)
+cleanup (void)
 {
   if (!interrupt_signal)
-  {
-    int status = synchronize_output();
-    if (status != 0)
-      exit(status);
-  }
+    {
+      int sync_status = synchronize_output ();
+      if (sync_status != 0)
+        {
+          exit (sync_status);
+        }
+    }
 
-  if (iclose(STDIN_FILENO) != 0)
-  {
-    int e = errno;
-    const char *msg = _("closing input file %s");
-    report_close_error(e, msg, input_file);
-  }
+  if (iclose (STDIN_FILENO) != 0)
+    {
+      error (EXIT_FAILURE, errno, _("closing input file %s"),
+             quoteaf (input_file));
+    }
 
-  if (iclose(STDOUT_FILENO) != 0)
-  {
-    int e = errno;
-    const char *msg = _("closing output file %s");
-    report_close_error(e, msg, output_file);
-  }
+  if (iclose (STDOUT_FILENO) != 0)
+    {
+      error (EXIT_FAILURE, errno,
+             _("closing output file %s"), quoteaf (output_file));
+    }
 }
 
 /* Process any pending signals.  If signals are caught, this function
@@ -1072,55 +996,50 @@ cleanup(void)
    unbounded amount of time when signals are not being processed.  */
 
 static void
-process_signals(void)
+process_signals (void)
 {
+  int interrupt;
+  int infos;
+  sigset_t oldset;
+
   while (interrupt_signal || info_signal_count)
     {
-      int interrupt = 0;
-      sigset_t oldset;
-      int mask_ok = sigprocmask(SIG_BLOCK, &caught_signals, &oldset) == 0;
+      if (sigprocmask (SIG_BLOCK, &caught_signals, &oldset) != 0)
+        continue;
 
-      if (mask_ok)
+      interrupt = interrupt_signal;
+      infos = info_signal_count;
+
+      if (infos > 0)
+        info_signal_count = infos - 1;
+
+      if (sigprocmask (SIG_SETMASK, &oldset, NULL) != 0)
+        continue;
+
+      if (interrupt)
         {
-          interrupt = interrupt_signal;
-          if (info_signal_count > 0)
-            --info_signal_count;
-          (void) sigprocmask (SIG_SETMASK, &oldset, NULL);
+          cleanup ();
+          print_stats ();
+          raise (interrupt);
         }
       else
         {
-          interrupt = interrupt_signal;
-          if (info_signal_count > 0)
-            --info_signal_count;
+          print_stats ();
         }
-
-      if (interrupt)
-        cleanup ();
-      print_stats ();
-      if (interrupt)
-        raise (interrupt);
     }
 }
 
 static void finish_up(void)
 {
     process_signals();
-
-    static int cleanup_performed = 0;
-    if (!cleanup_performed) {
-        cleanup();
-        cleanup_performed = 1;
-    }
-
+    cleanup();
     print_stats();
 }
 
-static _Noreturn void
-quit(int exit_code)
+static void quit(int code)
 {
     finish_up();
-    exit(exit_code);
-    abort();
+    exit(code);
 }
 
 /* Return LEN rounded down to a multiple of IO_BUFSIZE
@@ -1129,33 +1048,29 @@ quit(int exit_code)
    Pass LEN == 0 to get the current remainder.  */
 
 static off_t
-cache_round(int fd, off_t len)
+cache_round (int fd, off_t len)
 {
-    static off_t in_pending = 0;
-    static off_t out_pending = 0;
-    off_t* pending = (fd == STDIN_FILENO) ? &in_pending : &out_pending;
+  static off_t i_pending = 0;
+  static off_t o_pending = 0;
+  off_t *pending = (fd == STDIN_FILENO) ? &i_pending : &o_pending;
 
-    if (len == 0) {
-        return *pending;
+  if (len == 0)
+    {
+      return *pending;
     }
 
-    intmax_t total;
-    if (ckd_add(&total, (intmax_t)*pending, (intmax_t)len)) {
-        total = INTMAX_MAX;
+  intmax_t c_pending = 0;
+  if (ckd_add (&c_pending, *pending, len))
+    {
+      c_pending = INTMAX_MAX;
     }
 
-    intmax_t remainder = 0;
-    if ((intmax_t)IO_BUFSIZE > 0) {
-        remainder = total % (intmax_t)IO_BUFSIZE;
-    }
-
-    *pending = (off_t)remainder;
-
-    if (total > remainder) {
-        return (off_t)(total - remainder);
-    }
-
-    return 0;
+  off_t new_pending = c_pending % IO_BUFSIZE;
+  off_t result = (c_pending > new_pending) ? (c_pending - new_pending) : 0;
+  
+  *pending = new_pending;
+  
+  return result;
 }
 
 /* Discard the cache from the current offset of either
@@ -1166,65 +1081,77 @@ cache_round(int fd, off_t len)
 static bool
 invalidate_cache(int fd, off_t len)
 {
-  int adv_ret = -1;
-  off_t offset;
-  bool nocache_eof = (fd == STDIN_FILENO) ? i_nocache_eof : o_nocache_eof;
+    off_t offset;
+    off_t clen;
+    off_t pending;
+    bool nocache_eof;
+    int adv_ret = -1;
 
-  off_t clen = cache_round(fd, len);
-  if ((len && !clen) || (!len && !clen && !nocache_eof))
-    return true;
+    nocache_eof = (fd == STDIN_FILENO) ? i_nocache_eof : o_nocache_eof;
+    
+    clen = cache_round(fd, len);
+    if (len && !clen)
+        return true;
+    if (!len && !clen && !nocache_eof)
+        return true;
+    
+    pending = len ? cache_round(fd, 0) : 0;
 
-  off_t pending = len ? cache_round(fd, 0) : 0;
-
-  if (fd == STDIN_FILENO)
+    if (fd == STDIN_FILENO)
     {
-      if (!input_seekable)
+        if (input_seekable)
         {
-          errno = ESPIPE;
-          return false;
+            offset = input_offset;
         }
-      offset = input_offset;
+        else
+        {
+            offset = -1;
+            errno = ESPIPE;
+        }
     }
-  else
+    else
     {
-      static off_t output_offset = -2;
+        static off_t output_offset = -2;
 
-      if (output_offset != -1)
+        if (output_offset == -1)
         {
-          if (output_offset < 0)
-            {
-              output_offset = lseek(fd, 0, SEEK_CUR);
-            }
-          else if (len)
-            {
-              output_offset += clen + pending;
-            }
+            offset = -1;
         }
+        else if (output_offset < 0)
+        {
+            output_offset = lseek(fd, 0, SEEK_CUR);
+            offset = output_offset;
+        }
+        else
+        {
+            if (len)
+                output_offset += clen + pending;
+            offset = output_offset;
+        }
+    }
 
-      offset = output_offset;
-      if (offset < 0)
+    if (offset < 0)
+    {
         return false;
     }
 
-  if (!len && clen && nocache_eof)
+    if (!len && clen && nocache_eof)
     {
-      pending = clen;
-      clen = 0;
+        pending = clen;
+        clen = 0;
     }
 
 #if HAVE_POSIX_FADVISE
-  {
-    off_t start = offset - clen - pending;
+    offset = offset - clen - pending;
     if (clen == 0)
-      start -= start % page_size;
-    adv_ret = posix_fadvise(fd, start, clen, POSIX_FADV_DONTNEED);
+        offset -= offset % page_size;
+    adv_ret = posix_fadvise(fd, offset, clen, POSIX_FADV_DONTNEED);
     errno = adv_ret;
-  }
 #else
-  errno = ENOTSUP;
+    errno = ENOTSUP;
 #endif
 
-  return adv_ret == 0;
+    return adv_ret == 0;
 }
 
 /* Read from FD into the buffer BUF of size SIZE, processing any
@@ -1234,44 +1161,42 @@ invalidate_cache(int fd, off_t len)
 static ssize_t
 iread (int fd, char *buf, idx_t size)
 {
-  static ssize_t prev_nread;
-  const int direct_flag = (input_flags & O_DIRECT) != 0;
-  const int prev_partial = (prev_nread > 0 && prev_nread < size);
   ssize_t nread;
+  static ssize_t prev_nread;
 
-  for (;;)
+  do
     {
       process_signals ();
       nread = read (fd, buf, size);
-
-      if (nread >= 0)
-        break;
-
-      if (errno == EINTR)
-        continue;
-
-      if (errno == EINVAL && prev_partial && direct_flag)
+      
+      if (nread == -1 && errno == EINVAL && (input_flags & O_DIRECT))
         {
-          errno = 0;
-          nread = 0;
+          if (prev_nread > 0 && prev_nread < size)
+            {
+              errno = 0;
+              nread = 0;
+            }
         }
-      break;
     }
+  while (nread < 0 && errno == EINTR);
 
   if (nread > 0 && nread < size)
-    process_signals ();
-
-  if (nread > 0 && warn_partial_read && prev_partial)
     {
-      idx_t prev = prev_nread;
-      if (status_level != STATUS_NONE)
-        diagnose (0, ngettext (("warning: partial read (%td byte); "
-                                "suggest iflag=fullblock"),
-                               ("warning: partial read (%td bytes); "
-                                "suggest iflag=fullblock"),
-                               select_plural (prev)),
-                  prev);
-      warn_partial_read = false;
+      process_signals ();
+      
+      if (warn_partial_read && prev_nread > 0 && prev_nread < size)
+        {
+          if (status_level != STATUS_NONE)
+            {
+              diagnose (0, ngettext (("warning: partial read (%td byte); "
+                                      "suggest iflag=fullblock"),
+                                     ("warning: partial read (%td bytes); "
+                                      "suggest iflag=fullblock"),
+                                     select_plural (prev_nread)),
+                        prev_nread);
+            }
+          warn_partial_read = false;
+        }
     }
 
   prev_nread = nread;
@@ -1282,24 +1207,27 @@ iread (int fd, char *buf, idx_t size)
 static ssize_t
 iread_fullblock (int fd, char *buf, idx_t size)
 {
-  if (size == 0)
-    return 0;
+  if (fd < 0 || buf == NULL || size <= 0)
+    {
+      errno = EINVAL;
+      return -1;
+    }
 
   ssize_t total_read = 0;
-  char *p = buf;
   idx_t remaining = size;
 
   while (remaining > 0)
     {
-      ssize_t ncurr = iread (fd, p, remaining);
-      if (ncurr < 0)
-        return ncurr;
-      if (ncurr == 0)
+      ssize_t bytes_read = iread (fd, buf + total_read, remaining);
+      
+      if (bytes_read < 0)
+        return bytes_read;
+        
+      if (bytes_read == 0)
         break;
-
-      total_read += ncurr;
-      p += ncurr;
-      remaining -= (idx_t) ncurr;
+        
+      total_read += bytes_read;
+      remaining -= bytes_read;
     }
 
   return total_read;
@@ -1315,24 +1243,13 @@ iwrite (int fd, char const *buf, idx_t size)
 {
   idx_t total_written = 0;
 
-  if (size == 0)
-    return 0;
-
   if ((output_flags & O_DIRECT) && size < output_blocksize)
     {
       int old_flags = fcntl (STDOUT_FILENO, F_GETFL);
-      if (old_flags == -1)
-        {
-          if (status_level != STATUS_NONE)
-            diagnose (errno, _("failed to turn off O_DIRECT: %s"),
-                      quotef (output_file));
-        }
-      else if (fcntl (STDOUT_FILENO, F_SETFL, old_flags & ~O_DIRECT) != 0)
-        {
-          if (status_level != STATUS_NONE)
-            diagnose (errno, _("failed to turn off O_DIRECT: %s"),
-                      quotef (output_file));
-        }
+      if (fcntl (STDOUT_FILENO, F_SETFL, old_flags & ~O_DIRECT) != 0
+          && status_level != STATUS_NONE)
+        diagnose (errno, _("failed to turn off O_DIRECT: %s"),
+                  quotef (output_file));
 
       o_nocache_eof = true;
       invalidate_cache (STDOUT_FILENO, 0);
@@ -1341,33 +1258,32 @@ iwrite (int fd, char const *buf, idx_t size)
 
   while (total_written < size)
     {
+      ssize_t nwritten = 0;
       process_signals ();
 
-      idx_t remaining = size - total_written;
-      ssize_t nwritten = 0;
-
       final_op_was_seek = false;
-      if ((conversions_mask & C_SPARSE) && is_nul (buf + total_written, remaining))
+      if ((conversions_mask & C_SPARSE) && is_nul (buf, size))
         {
-          if (lseek (fd, (off_t) remaining, SEEK_CUR) < 0)
+          if (lseek (fd, size, SEEK_CUR) >= 0)
             {
-              conversions_mask &= ~C_SPARSE;
+              final_op_was_seek = true;
+              nwritten = size;
             }
           else
             {
-              final_op_was_seek = true;
-              nwritten = (ssize_t) remaining;
+              conversions_mask &= ~C_SPARSE;
             }
         }
 
-      if (!nwritten)
-        nwritten = write (fd, buf + total_written, remaining);
+      if (nwritten == 0)
+        {
+          nwritten = write (fd, buf + total_written, size - total_written);
+        }
 
       if (nwritten < 0)
         {
-          if (errno == EINTR)
-            continue;
-          break;
+          if (errno != EINTR)
+            break;
         }
       else if (nwritten == 0)
         {
@@ -1375,10 +1291,12 @@ iwrite (int fd, char const *buf, idx_t size)
           break;
         }
       else
-        total_written += (idx_t) nwritten;
+        {
+          total_written += nwritten;
+        }
     }
 
-  if (o_nocache && total_written)
+  if (o_nocache && total_written > 0)
     invalidate_cache (fd, total_written);
 
   return total_written;
@@ -1387,24 +1305,22 @@ iwrite (int fd, char const *buf, idx_t size)
 /* Write, then empty, the output buffer 'obuf'. */
 
 static void
-write_output(void)
+write_output (void)
 {
-  const idx_t expected = output_blocksize;
-  const idx_t nwritten = iwrite(STDOUT_FILENO, obuf, expected);
-
+  idx_t nwritten = iwrite (STDOUT_FILENO, obuf, output_blocksize);
   w_bytes += nwritten;
-
-  if (nwritten == expected)
+  
+  if (nwritten == output_blocksize)
     {
       w_full++;
       oc = 0;
       return;
     }
-
-  diagnose(errno, _("writing to %s"), quoteaf(output_file));
+  
+  diagnose (errno, _("writing to %s"), quoteaf (output_file));
   if (nwritten != 0)
     w_partial++;
-  quit(EXIT_FAILURE);
+  quit (EXIT_FAILURE);
 }
 
 /* Restart on EINTR from fdatasync.  */
@@ -1412,14 +1328,22 @@ write_output(void)
 static int
 ifdatasync (int fd)
 {
-  for (;;)
+  if (fd < 0)
+    {
+      errno = EBADF;
+      return -1;
+    }
+
+  int ret;
+
+  do
     {
       process_signals ();
-      if (fdatasync (fd) == 0)
-        return 0;
-      if (errno != EINTR)
-        return -1;
+      ret = fdatasync (fd);
     }
+  while (ret == -1 && errno == EINTR);
+
+  return ret;
 }
 
 /* Restart on EINTR from fd_reopen.  */
@@ -1427,29 +1351,38 @@ ifdatasync (int fd)
 static int
 ifd_reopen (int desired_fd, char const *file, int flag, mode_t mode)
 {
-  for (;;)
+  int ret;
+
+  do
     {
       process_signals ();
-      int ret = fd_reopen (desired_fd, file, flag, mode);
-      if (ret >= 0)
-        return ret;
-      if (errno != EINTR)
-        return ret;
+      ret = fd_reopen (desired_fd, file, flag, mode);
+      if (ret >= 0 || errno != EINTR)
+        {
+          break;
+        }
     }
+  while (1);
+
+  return ret;
 }
 
 /* Restart on EINTR from fstat.  */
 
-static int
-ifstat(int fd, struct stat *st)
+static int ifstat(int fd, struct stat *st)
 {
-    for (;;)
-    {
-        process_signals();
-        int ret = fstat(fd, st);
-        if (ret != -1 || errno != EINTR)
-            return ret;
+    if (fd < 0 || st == NULL) {
+        errno = EINVAL;
+        return -1;
     }
+
+    int ret;
+    do {
+        process_signals();
+        ret = fstat(fd, st);
+    } while (ret == -1 && errno == EINTR);
+
+    return ret;
 }
 
 /* Restart on EINTR from fsync.  */
@@ -1457,38 +1390,34 @@ ifstat(int fd, struct stat *st)
 static int
 ifsync (int fd)
 {
-  for (;;)
-    {
-      int ret;
-      int saved_errno;
+  int ret;
 
+  while (1)
+    {
       process_signals ();
       ret = fsync (fd);
-      if (ret == 0)
-        return 0;
-
-      saved_errno = errno;
-      if (saved_errno != EINTR)
-        {
-          errno = saved_errno;
-          return -1;
-        }
+      if (ret >= 0 || errno != EINTR)
+        break;
     }
+
+  return ret;
 }
 
 /* Restart on EINTR from ftruncate.  */
 
 static int
-iftruncate(int fd, off_t length)
+iftruncate (int fd, off_t length)
 {
-  for (;;)
+  int ret;
+
+  do
     {
-      process_signals();
-      if (ftruncate(fd, length) == 0)
-        return 0;
-      if (errno != EINTR)
-        return -1;
+      process_signals ();
+      ret = ftruncate (fd, length);
     }
+  while (ret == -1 && errno == EINTR);
+
+  return ret;
 }
 
 /* Return true if STR is of the form "PATTERN" or "PATTERNDELIM...".  */
@@ -1513,22 +1442,31 @@ parse_symbols (char const *str, struct symbol_value const *table,
 {
   int value = 0;
 
-  while (1)
+  if (!str || !table || !error_msgid)
+    return 0;
+
+  while (*str)
     {
       char const *strcomma = strchr (str, ',');
-      struct symbol_value const *entry;
+      idx_t token_len = strcomma ? (idx_t)(strcomma - str) : strlen (str);
+      struct symbol_value const *entry = table;
+      bool found = false;
 
-      for (entry = table; entry->symbol[0]; entry++)
+      while (entry->symbol[0])
         {
-          if (entry->value && operand_matches (str, entry->symbol, ','))
-            break;
+          if (operand_matches (str, entry->symbol, ',') && entry->value)
+            {
+              found = true;
+              break;
+            }
+          entry++;
         }
 
-      if (! entry->symbol[0])
+      if (!found)
         {
-          idx_t slen = strcomma ? (idx_t) (strcomma - str) : (idx_t) strlen (str);
           diagnose (0, "%s: %s", _(error_msgid),
-                    quotearg_n_style_mem (0, locale_quoting_style, str, slen));
+                    quotearg_n_style_mem (0, locale_quoting_style,
+                                          str, token_len));
           usage (EXIT_FAILURE);
         }
 
@@ -1536,10 +1474,10 @@ parse_symbols (char const *str, struct symbol_value const *table,
         value = entry->value;
       else
         value |= entry->value;
-
-      if (! strcomma)
+        
+      if (!strcomma)
         break;
-
+        
       str = strcomma + 1;
     }
 
@@ -1554,56 +1492,58 @@ parse_symbols (char const *str, struct symbol_value const *table,
 static intmax_t
 parse_integer (char const *str, strtol_error *invalid)
 {
-  char *suffix = NULL;
-  static const char suffixes[] = "bcEGkKMPQRTwYZ0";
   uintmax_t n = 0;
+  char *suffix;
+  static char const suffixes[] = "bcEGkKMPQRTwYZ0";
   strtol_error e = xstrtoumax (str, &suffix, 10, &n, suffixes);
   intmax_t result = 0;
-  strtol_error e_core = e & ~LONGINT_OVERFLOW;
 
-  if (e_core == LONGINT_INVALID_SUFFIX_CHAR
-      && suffix && *suffix == 'B' && str && str < suffix && suffix[-1] != 'B')
+  if ((e & ~LONGINT_OVERFLOW) == LONGINT_INVALID_SUFFIX_CHAR && suffix != NULL)
     {
-      suffix++;
-      if (!*suffix)
-        e &= ~LONGINT_INVALID_SUFFIX_CHAR;
-      e_core = e & ~LONGINT_OVERFLOW;
-    }
-
-  if (e_core == LONGINT_INVALID_SUFFIX_CHAR && suffix && *suffix == 'x')
-    {
-      strtol_error f = LONGINT_OK;
-      intmax_t o = parse_integer (suffix + 1, &f);
-      strtol_error f_core = f & ~LONGINT_OVERFLOW;
-
-      if (f_core != LONGINT_OK)
+      if (*suffix == 'B' && str < suffix && suffix[-1] != 'B')
         {
-          e = f;
-          result = 0;
+          suffix++;
+          if (*suffix == '\0')
+            e &= ~LONGINT_INVALID_SUFFIX_CHAR;
         }
-      else if (ckd_mul (&result, n, o)
-               || (result != 0 && ((e | f) & LONGINT_OVERFLOW)))
+      
+      if (*suffix == 'x')
+        {
+          strtol_error f = LONGINT_OK;
+          intmax_t multiplier = parse_integer (suffix + 1, &f);
+          
+          if ((f & ~LONGINT_OVERFLOW) != LONGINT_OK)
+            {
+              e = f;
+            }
+          else if (ckd_mul (&result, n, multiplier) || (result != 0 && ((e | f) & LONGINT_OVERFLOW)))
+            {
+              e = LONGINT_OVERFLOW;
+              result = INTMAX_MAX;
+            }
+          else
+            {
+              if (result == 0 && STRPREFIX (str, "0x"))
+                diagnose (0, _("warning: %s is a zero multiplier; use %s if that is intended"),
+                          quote_n (0, "0x"), quote_n (1, "00x"));
+              e = LONGINT_OK;
+              *invalid = e;
+              return result;
+            }
+        }
+    }
+  
+  if ((e & ~LONGINT_OVERFLOW) != LONGINT_INVALID_SUFFIX_CHAR || suffix == NULL || *suffix != 'x')
+    {
+      if (n <= INTMAX_MAX)
+        {
+          result = n;
+        }
+      else
         {
           e = LONGINT_OVERFLOW;
           result = INTMAX_MAX;
         }
-      else
-        {
-          if (result == 0 && STRPREFIX (str, "0x"))
-            diagnose (0, _("warning: %s is a zero multiplier; "
-                           "use %s if that is intended"),
-                      quote_n (0, "0x"), quote_n (1, "00x"));
-          e = LONGINT_OK;
-        }
-    }
-  else if (n <= INTMAX_MAX)
-    {
-      result = (intmax_t) n;
-    }
-  else
-    {
-      e = LONGINT_OVERFLOW;
-      result = INTMAX_MAX;
     }
 
   *invalid = e;
@@ -1641,116 +1581,110 @@ scanargs (int argc, char *const *argv)
       val++;
 
       if (operand_is (name, "if"))
-        {
-          input_file = val;
-        }
+        input_file = val;
       else if (operand_is (name, "of"))
-        {
-          output_file = val;
-        }
+        output_file = val;
       else if (operand_is (name, "conv"))
-        {
-          conversions_mask |= parse_symbols (val, conversions, false,
-                                             N_("invalid conversion"));
-        }
+        conversions_mask |= parse_symbols (val, conversions, false,
+                                           N_("invalid conversion"));
       else if (operand_is (name, "iflag"))
-        {
-          input_flags |= parse_symbols (val, flags, false,
-                                        N_("invalid input flag"));
-        }
+        input_flags |= parse_symbols (val, flags, false,
+                                      N_("invalid input flag"));
       else if (operand_is (name, "oflag"))
-        {
-          output_flags |= parse_symbols (val, flags, false,
-                                         N_("invalid output flag"));
-        }
+        output_flags |= parse_symbols (val, flags, false,
+                                       N_("invalid output flag"));
       else if (operand_is (name, "status"))
-        {
-          status_level = parse_symbols (val, statuses, true,
-                                        N_("invalid status level"));
-        }
+        status_level = parse_symbols (val, statuses, true,
+                                      N_("invalid status level"));
       else
         {
-          strtol_error invalid = LONGINT_OK;
-          intmax_t parsed_value = parse_integer (val, &invalid);
-          bool has_B = (strchr (val, 'B') != NULL);
-          intmax_t n_min = 0;
-          intmax_t n_max = INTMAX_MAX;
-          idx_t *converted_idx = NULL;
-          enum { ARG_NONE, ARG_SKIP, ARG_SEEK, ARG_COUNT } arg_kind = ARG_NONE;
-
-          idx_t max_blocksize = MIN (IDX_MAX - 1, MIN (SSIZE_MAX, OFF_T_MAX));
-
-          if (operand_is (name, "ibs"))
-            {
-              n_min = 1;
-              n_max = max_blocksize;
-              converted_idx = &input_blocksize;
-            }
-          else if (operand_is (name, "obs"))
-            {
-              n_min = 1;
-              n_max = max_blocksize;
-              converted_idx = &output_blocksize;
-            }
-          else if (operand_is (name, "bs"))
-            {
-              n_min = 1;
-              n_max = max_blocksize;
-              converted_idx = &blocksize;
-            }
-          else if (operand_is (name, "cbs"))
-            {
-              n_min = 1;
-              n_max = MIN (SIZE_MAX, IDX_MAX);
-              converted_idx = &conversion_blocksize;
-            }
-          else if (operand_is (name, "skip") || operand_is (name, "iseek"))
-            {
-              arg_kind = ARG_SKIP;
-              skip_B = has_B;
-            }
-          else if (operand_is (name, "seek") || operand_is (name, "oseek"))
-            {
-              arg_kind = ARG_SEEK;
-              seek_B = has_B;
-            }
-          else if (operand_is (name, "count"))
-            {
-              arg_kind = ARG_COUNT;
-              count_B = has_B;
-            }
-          else
-            {
-              diagnose (0, _("unrecognized operand %s"), quoteaf (name));
-              usage (EXIT_FAILURE);
-            }
-
-          if (parsed_value < n_min)
-            invalid = LONGINT_INVALID;
-          else if (n_max < parsed_value)
-            invalid = LONGINT_OVERFLOW;
-
-          if (invalid != LONGINT_OK)
-            {
-              error (EXIT_FAILURE, invalid == LONGINT_OVERFLOW ? EOVERFLOW : 0,
-                     "%s: %s", _("invalid number"), quoteaf (val));
-            }
-          else if (converted_idx)
-            {
-              *converted_idx = (idx_t) parsed_value;
-            }
-          else
-            {
-              if (arg_kind == ARG_SKIP)
-                skip = parsed_value;
-              else if (arg_kind == ARG_SEEK)
-                seek = parsed_value;
-              else if (arg_kind == ARG_COUNT)
-                count = parsed_value;
-            }
+          process_numeric_operand (name, val, &blocksize, &skip, &seek,
+                                  &count, &skip_B, &seek_B, &count_B);
         }
     }
 
+  apply_blocksize_settings (blocksize);
+  apply_skip_settings (skip, skip_B);
+  apply_count_settings (count, count_B);
+  apply_seek_settings (seek, seek_B);
+  validate_flags_and_conversions ();
+  configure_caching ();
+}
+
+static void
+process_numeric_operand (char const *name, char const *val,
+                        idx_t *blocksize, intmax_t *skip, intmax_t *seek,
+                        intmax_t *count, bool *skip_B, bool *seek_B, bool *count_B)
+{
+  strtol_error invalid = LONGINT_OK;
+  intmax_t n = parse_integer (val, &invalid);
+  bool has_B = strchr (val, 'B') != NULL;
+  intmax_t n_min = 0;
+  intmax_t n_max = INTMAX_MAX;
+  idx_t *converted_idx = NULL;
+
+  idx_t max_blocksize = MIN (IDX_MAX - 1, MIN (SSIZE_MAX, OFF_T_MAX));
+
+  if (operand_is (name, "ibs"))
+    {
+      n_min = 1;
+      n_max = max_blocksize;
+      converted_idx = &input_blocksize;
+    }
+  else if (operand_is (name, "obs"))
+    {
+      n_min = 1;
+      n_max = max_blocksize;
+      converted_idx = &output_blocksize;
+    }
+  else if (operand_is (name, "bs"))
+    {
+      n_min = 1;
+      n_max = max_blocksize;
+      converted_idx = blocksize;
+    }
+  else if (operand_is (name, "cbs"))
+    {
+      n_min = 1;
+      n_max = MIN (SIZE_MAX, IDX_MAX);
+      converted_idx = &conversion_blocksize;
+    }
+  else if (operand_is (name, "skip") || operand_is (name, "iseek"))
+    {
+      *skip = n;
+      *skip_B = has_B;
+    }
+  else if (operand_is (name + (*name == 'o'), "seek"))
+    {
+      *seek = n;
+      *seek_B = has_B;
+    }
+  else if (operand_is (name, "count"))
+    {
+      *count = n;
+      *count_B = has_B;
+    }
+  else
+    {
+      diagnose (0, _("unrecognized operand %s"), quoteaf (name));
+      usage (EXIT_FAILURE);
+    }
+
+  if (n < n_min)
+    invalid = LONGINT_INVALID;
+  else if (n_max < n)
+    invalid = LONGINT_OVERFLOW;
+
+  if (invalid != LONGINT_OK)
+    error (EXIT_FAILURE, invalid == LONGINT_OVERFLOW ? EOVERFLOW : 0,
+           "%s: %s", _("invalid number"), quoteaf (val));
+  else if (converted_idx)
+    *converted_idx = n;
+}
+
+static void
+apply_blocksize_settings (idx_t blocksize)
+{
   if (blocksize)
     {
       input_blocksize = blocksize;
@@ -1767,18 +1701,14 @@ scanargs (int argc, char *const *argv)
     output_blocksize = DEFAULT_BLOCKSIZE;
   if (conversion_blocksize == 0)
     conversions_mask &= ~(C_BLOCK | C_UNBLOCK);
+}
 
-  if (input_flags & (O_DSYNC | O_SYNC))
-    input_flags |= O_RSYNC;
-
-  if (output_flags & O_FULLBLOCK)
-    {
-      diagnose (0, "%s: %s", _("invalid output flag"), quote ("fullblock"));
-      usage (EXIT_FAILURE);
-    }
-
+static void
+apply_skip_settings (intmax_t skip, bool skip_B)
+{
   if (skip_B)
     input_flags |= O_SKIP_BYTES;
+  
   if ((input_flags & O_SKIP_BYTES) && skip != 0)
     {
       skip_records = skip / input_blocksize;
@@ -1788,9 +1718,14 @@ scanargs (int argc, char *const *argv)
     {
       skip_records = skip;
     }
+}
 
+static void
+apply_count_settings (intmax_t count, bool count_B)
+{
   if (count_B)
     input_flags |= O_COUNT_BYTES;
+  
   if ((input_flags & O_COUNT_BYTES) && count != INTMAX_MAX)
     {
       max_records = count / input_blocksize;
@@ -1800,9 +1735,14 @@ scanargs (int argc, char *const *argv)
     {
       max_records = count;
     }
+}
 
+static void
+apply_seek_settings (intmax_t seek, bool seek_B)
+{
   if (seek_B)
     output_flags |= O_SEEK_BYTES;
+  
   if ((output_flags & O_SEEK_BYTES) && seek != 0)
     {
       seek_records = seek / output_blocksize;
@@ -1812,15 +1752,27 @@ scanargs (int argc, char *const *argv)
     {
       seek_records = seek;
     }
+}
+
+static void
+validate_flags_and_conversions (void)
+{
+  if (input_flags & (O_DSYNC | O_SYNC))
+    input_flags |= O_RSYNC;
+
+  if (output_flags & O_FULLBLOCK)
+    {
+      diagnose (0, "%s: %s", _("invalid output flag"), quote ("fullblock"));
+      usage (EXIT_FAILURE);
+    }
 
   warn_partial_read =
-    ((!(conversions_mask & C_TWOBUFS))
-     && (!(input_flags & O_FULLBLOCK))
+    (!(conversions_mask & C_TWOBUFS) && !(input_flags & O_FULLBLOCK)
      && (skip_records
-         || ((0 < max_records) && (max_records < INTMAX_MAX))
-         || (((input_flags | output_flags) & O_DIRECT) != 0)));
+         || (0 < max_records && max_records < INTMAX_MAX)
+         || (input_flags | output_flags) & O_DIRECT));
 
-  iread_fnc = ((input_flags & O_FULLBLOCK) ? iread_fullblock : iread);
+  iread_fnc = (input_flags & O_FULLBLOCK) ? iread_fullblock : iread;
   input_flags &= ~O_FULLBLOCK;
 
   if (multiple_bits_set (conversions_mask & (C_ASCII | C_EBCDIC | C_IBM)))
@@ -1834,13 +1786,18 @@ scanargs (int argc, char *const *argv)
   if (multiple_bits_set (input_flags & (O_DIRECT | O_NOCACHE))
       || multiple_bits_set (output_flags & (O_DIRECT | O_NOCACHE)))
     error (EXIT_FAILURE, 0, _("cannot combine direct and nocache"));
+}
 
+static void
+configure_caching (void)
+{
   if (input_flags & O_NOCACHE)
     {
       i_nocache = true;
       i_nocache_eof = (max_records == 0 && max_bytes == 0);
       input_flags &= ~O_NOCACHE;
     }
+  
   if (output_flags & O_NOCACHE)
     {
       o_nocache = true;
@@ -1854,60 +1811,53 @@ scanargs (int argc, char *const *argv)
 static void
 apply_translations (void)
 {
-  int i;
+  if ((conversions_mask & C_ASCII) != 0)
+  {
+    translate_charset (ebcdic_to_ascii);
+  }
 
-  if (conversions_mask & C_ASCII)
+  if ((conversions_mask & C_UCASE) != 0)
+  {
+    for (int i = 0; i < 256; i++)
     {
-      translate_charset (ebcdic_to_ascii);
+      trans_table[i] = toupper (trans_table[i]);
     }
+    translation_needed = true;
+  }
+  else if ((conversions_mask & C_LCASE) != 0)
+  {
+    for (int i = 0; i < 256; i++)
+    {
+      trans_table[i] = tolower (trans_table[i]);
+    }
+    translation_needed = true;
+  }
 
-  if (conversions_mask & C_UCASE)
-    {
-      for (i = 0; i < 256; i++)
-        {
-          unsigned char c = (unsigned char) trans_table[i];
-          trans_table[i] = (unsigned char) toupper ((int) c);
-        }
-      translation_needed = true;
-    }
-  else if (conversions_mask & C_LCASE)
-    {
-      for (i = 0; i < 256; i++)
-        {
-          unsigned char c = (unsigned char) trans_table[i];
-          trans_table[i] = (unsigned char) tolower ((int) c);
-        }
-      translation_needed = true;
-    }
-
-  if (conversions_mask & C_EBCDIC)
-    {
-      translate_charset (ascii_to_ebcdic);
-      newline_character = (unsigned char) ascii_to_ebcdic['\n'];
-      space_character = (unsigned char) ascii_to_ebcdic[' '];
-    }
-  else if (conversions_mask & C_IBM)
-    {
-      translate_charset (ascii_to_ibm);
-      newline_character = (unsigned char) ascii_to_ibm['\n'];
-      space_character = (unsigned char) ascii_to_ibm[' '];
-    }
+  if ((conversions_mask & C_EBCDIC) != 0)
+  {
+    translate_charset (ascii_to_ebcdic);
+    newline_character = ascii_to_ebcdic['\n'];
+    space_character = ascii_to_ebcdic[' '];
+  }
+  else if ((conversions_mask & C_IBM) != 0)
+  {
+    translate_charset (ascii_to_ibm);
+    newline_character = ascii_to_ibm['\n'];
+    space_character = ascii_to_ibm[' '];
+  }
 }
 
 /* Apply the character-set translations specified by the user
    to the NREAD bytes in BUF.  */
 
-static void
-translate_buffer (char *buf, idx_t nread)
+static void translate_buffer(char *buf, idx_t nread)
 {
-  if (!buf || nread <= 0)
-    return;
-
-  char *end = buf + nread;
-  for (char *cp = buf; cp < end; ++cp)
-    {
-      unsigned char c = to_uchar (*cp);
-      *cp = trans_table[c];
+    if (!buf || nread == 0) {
+        return;
+    }
+    
+    for (idx_t i = 0; i < nread; i++) {
+        buf[i] = trans_table[to_uchar(buf[i])];
     }
 }
 
@@ -1919,54 +1869,51 @@ translate_buffer (char *buf, idx_t nread)
    Return the buffer's adjusted start, either BUF or BUF + 1.  */
 
 static char *
-swab_buffer(char *buf, idx_t *nread, int *saved_byte)
+swab_buffer (char *buf, idx_t *nread, int *saved_byte)
 {
-  if (!buf || !nread || !saved_byte)
-    return 0;
-
-  idx_t n = *nread;
-  if (n == 0)
+  if (buf == NULL || nread == NULL || saved_byte == NULL || *nread == 0)
     return buf;
 
   int prev_saved = *saved_byte;
-  int prev_was_negative = (prev_saved < 0);
-  int n_is_odd = (int)(n & 1);
-
-  if ((prev_was_negative && n_is_odd) || (!prev_was_negative && !n_is_odd))
+  int has_odd_bytes = *nread & 1;
+  int should_save_byte = (prev_saved < 0) == has_odd_bytes;
+  
+  if (should_save_byte)
     {
-      unsigned char c = (unsigned char)buf[--n];
-      *saved_byte = (int)c;
+      *saved_byte = (unsigned char)buf[--*nread];
     }
   else
     {
       *saved_byte = -1;
     }
 
-  for (idx_t i = n; i > 1; i -= 2)
-    buf[i] = buf[i - 2];
-
-  if (prev_was_negative)
+  idx_t i = *nread;
+  while (i > 1)
     {
-      *nread = n;
-      return buf + 1;
+      buf[i] = buf[i - 2];
+      i -= 2;
     }
 
-  buf[1] = (char)prev_saved;
-  *nread = n + 1;
-  return buf;
+  if (prev_saved >= 0)
+    {
+      buf[1] = (char)prev_saved;
+      ++*nread;
+      return buf;
+    }
+  
+  return buf + 1;
 }
 
 /* Add OFFSET to the input offset, setting the overflow flag if
    necessary.  */
 
-static void advance_input_offset(intmax_t offset)
+static void
+advance_input_offset (intmax_t offset)
 {
-    if (input_offset < 0)
-        return;
-
-    if (!ckd_add(&input_offset, input_offset, offset))
-        return;
-
+  if (input_offset < 0)
+    return;
+    
+  if (ckd_add (&input_offset, input_offset, offset))
     input_offset = -1;
 }
 
@@ -1984,42 +1931,36 @@ skip (int fdesc, char const *file, intmax_t records, idx_t blocksize,
       idx_t *bytes)
 {
   errno = 0;
-
-  off_t offset = 0;
-  int have_offset = (!ckd_mul (&offset, records, blocksize)
-                     && !ckd_add (&offset, offset, *bytes));
-  if (have_offset)
+  off_t offset;
+  
+  if (!ckd_mul (&offset, records, blocksize) 
+      && !ckd_add (&offset, offset, *bytes)
+      && lseek (fdesc, offset, SEEK_CUR) >= 0)
     {
-      off_t r = lseek (fdesc, offset, SEEK_CUR);
-      if (0 <= r)
+      if (fdesc == STDIN_FILENO)
         {
-          if (fdesc == STDIN_FILENO)
+          struct stat st;
+          if (ifstat (STDIN_FILENO, &st) != 0)
+            error (EXIT_FAILURE, errno, _("cannot fstat %s"), quoteaf (file));
+            
+          if (usable_st_size (&st) && st.st_size > 0 && input_offset >= 0
+              && st.st_size - input_offset < offset)
             {
-              struct stat st;
-              if (ifstat (STDIN_FILENO, &st) != 0)
-                error (EXIT_FAILURE, errno, _("cannot fstat %s"), quoteaf (file));
-
-              if (usable_st_size (&st) && 0 < st.st_size && 0 <= input_offset
-                  && st.st_size - input_offset < offset)
-                {
-                  records = (offset - st.st_size) / blocksize;
-                  offset = st.st_size - input_offset;
-                }
-              else
-                {
-                  records = 0;
-                }
-
-              advance_input_offset (offset);
+              records = (offset - st.st_size) / blocksize;
+              offset = st.st_size - input_offset;
             }
           else
             {
               records = 0;
-              *bytes = 0;
             }
-
-          return records;
+          advance_input_offset (offset);
         }
+      else
+        {
+          records = 0;
+          *bytes = 0;
+        }
+      return records;
     }
 
   int lseek_errno = errno;
@@ -2037,7 +1978,7 @@ skip (int fdesc, char const *file, intmax_t records, idx_t blocksize,
       quit (EXIT_FAILURE);
     }
 
-  char *buf;
+  char *buf = NULL;
   if (fdesc == STDIN_FILENO)
     {
       alloc_ibuf ();
@@ -2049,11 +1990,11 @@ skip (int fdesc, char const *file, intmax_t records, idx_t blocksize,
       buf = obuf;
     }
 
-  do
+  while (records || *bytes)
     {
-      idx_t toread = records ? blocksize : *bytes;
-      ssize_t nread = iread_fnc (fdesc, buf, toread);
-
+      idx_t read_size = records ? blocksize : *bytes;
+      ssize_t nread = iread_fnc (fdesc, buf, read_size);
+      
       if (nread < 0)
         {
           if (fdesc == STDIN_FILENO)
@@ -2068,10 +2009,10 @@ skip (int fdesc, char const *file, intmax_t records, idx_t blocksize,
             }
           quit (EXIT_FAILURE);
         }
-
+        
       if (nread == 0)
         break;
-
+        
       if (fdesc == STDIN_FILENO)
         advance_input_offset (nread);
 
@@ -2080,7 +2021,6 @@ skip (int fdesc, char const *file, intmax_t records, idx_t blocksize,
       else
         *bytes = 0;
     }
-  while (records || *bytes);
 
   return records;
 }
@@ -2094,7 +2034,7 @@ skip (int fdesc, char const *file, intmax_t records, idx_t blocksize,
 static bool
 advance_input_after_read_error (idx_t nbytes)
 {
-  if (! input_seekable)
+  if (!input_seekable)
     {
       if (input_seek_errno == ESPIPE)
         return true;
@@ -2112,21 +2052,24 @@ advance_input_after_read_error (idx_t nbytes)
     }
 
   off_t offset = lseek (STDIN_FILENO, 0, SEEK_CUR);
-  if (0 <= offset)
+  if (offset < 0)
     {
-      if (offset == input_offset)
-        return true;
-
-      off_t diff = input_offset - offset;
-      if (! (0 <= diff && diff <= nbytes) && status_level != STATUS_NONE)
-        diagnose (0, _("warning: invalid file offset after failed read"));
-
-      if (0 <= lseek (STDIN_FILENO, diff, SEEK_CUR))
-        return true;
-
-      if (errno == 0)
-        diagnose (0, _("cannot work around kernel bug after all"));
+      diagnose (errno, _("%s: cannot seek"), quotef (input_file));
+      return false;
     }
+
+  if (offset == input_offset)
+    return true;
+
+  off_t diff = input_offset - offset;
+  if (!(0 <= diff && diff <= nbytes) && status_level != STATUS_NONE)
+    diagnose (0, _("warning: invalid file offset after failed read"));
+
+  if (lseek (STDIN_FILENO, diff, SEEK_CUR) >= 0)
+    return true;
+
+  if (errno == 0)
+    diagnose (0, _("cannot work around kernel bug after all"));
 
   diagnose (errno, _("%s: cannot seek"), quotef (input_file));
   return false;
@@ -2137,37 +2080,26 @@ advance_input_after_read_error (idx_t nbytes)
 static void
 copy_simple(char const *buf, idx_t nread)
 {
-  if (oc >= output_blocksize)
-    write_output();
+    if (buf == NULL || nread <= 0) {
+        return;
+    }
 
-  if (nread <= 0)
-    return;
+    char const *current_position = buf;
+    idx_t bytes_remaining = nread;
 
-  char const *start = buf;
+    while (bytes_remaining > 0) {
+        idx_t available_space = output_blocksize - oc;
+        idx_t bytes_to_copy = (bytes_remaining < available_space) ? bytes_remaining : available_space;
 
-  while (nread > 0)
-    {
-      idx_t capacity = output_blocksize - oc;
-      if (capacity <= 0)
-        {
-          write_output();
-          capacity = output_blocksize - oc;
-          if (capacity <= 0)
-            return;
+        memcpy(obuf + oc, current_position, bytes_to_copy);
+
+        current_position += bytes_to_copy;
+        oc += bytes_to_copy;
+        bytes_remaining -= bytes_to_copy;
+
+        if (oc >= output_blocksize) {
+            write_output();
         }
-
-      idx_t nfree = (nread < capacity) ? nread : capacity;
-
-      if (nfree > 0)
-        {
-          memcpy(obuf + oc, start, (size_t) nfree);
-          nread -= nfree;
-          start += nfree;
-          oc += nfree;
-        }
-
-      if (oc >= output_blocksize)
-        write_output();
     }
 }
 
@@ -2175,33 +2107,32 @@ copy_simple(char const *buf, idx_t nread)
    (pad newline-terminated records to 'conversion_blocksize',
    replacing the newline with trailing spaces).  */
 
-static void copy_with_block(const char *buf, idx_t nread)
+static void
+copy_with_block (char const *buf, idx_t nread)
 {
-    if (buf == NULL || nread == 0)
-        return;
-
-    const char *p = buf;
-    const char *end = buf + nread;
-
-    for (; p < end; ++p) {
-        char ch = *p;
-
-        if (ch == newline_character) {
-            if (col < conversion_blocksize) {
-                for (idx_t j = col; j < conversion_blocksize; ++j) {
-                    output_char(space_character);
-                }
+  for (idx_t i = 0; i < nread; i++)
+    {
+      if (buf[i] == newline_character)
+        {
+          while (col < conversion_blocksize)
+            {
+              output_char (space_character);
+              col++;
             }
-            col = 0;
-            continue;
+          col = 0;
         }
-
-        if (col < conversion_blocksize) {
-            output_char(ch);
-        } else if (col == conversion_blocksize) {
-            r_truncate++;
+      else
+        {
+          if (col >= conversion_blocksize)
+            {
+              r_truncate++;
+            }
+          else
+            {
+              output_char (buf[i]);
+            }
+          col++;
         }
-        col++;
     }
 }
 
@@ -2213,11 +2144,9 @@ static void
 copy_with_unblock (char const *buf, idx_t nread)
 {
   static idx_t pending_spaces = 0;
+  idx_t i = 0;
 
-  if (buf == NULL || nread == 0)
-    return;
-
-  for (idx_t i = 0; i < nread; ++i)
+  while (i < nread)
     {
       char c = buf[i];
 
@@ -2226,23 +2155,26 @@ copy_with_unblock (char const *buf, idx_t nread)
           col = 0;
           pending_spaces = 0;
           output_char (newline_character);
+          continue;
         }
 
       col++;
 
       if (c == space_character)
         {
-          ++pending_spaces;
-          continue;
+          pending_spaces++;
         }
-
-      while (pending_spaces > 0)
+      else
         {
-          output_char (space_character);
-          --pending_spaces;
+          while (pending_spaces > 0)
+            {
+              output_char (space_character);
+              pending_spaces--;
+            }
+          output_char (c);
         }
 
-      output_char (c);
+      i++;
     }
 }
 
@@ -2252,41 +2184,41 @@ copy_with_unblock (char const *buf, idx_t nread)
 static void
 set_fd_flags (int fd, int add_flags, char const *name)
 {
-  add_flags &= ~ (O_NOCTTY | O_NOFOLLOW);
-  if (!add_flags)
+  add_flags &= ~(O_NOCTTY | O_NOFOLLOW);
+
+  if (add_flags == 0)
     return;
 
   int old_flags = fcntl (fd, F_GETFL);
   if (old_flags < 0)
     error (EXIT_FAILURE, errno, _("setting flags for %s"), quoteaf (name));
 
-  int desired_flags = old_flags | add_flags;
+  int new_flags = old_flags | add_flags;
+  if (old_flags == new_flags)
+    return;
 
-  if (desired_flags & (O_DIRECTORY | O_NOLINKS))
+  if (new_flags & (O_DIRECTORY | O_NOLINKS))
     {
       struct stat st;
       if (ifstat (fd, &st) != 0)
         error (EXIT_FAILURE, errno, _("setting flags for %s"), quoteaf (name));
 
-      if ((desired_flags & O_DIRECTORY) && ! S_ISDIR (st.st_mode))
+      if ((new_flags & O_DIRECTORY) && !S_ISDIR (st.st_mode))
         {
           errno = ENOTDIR;
           error (EXIT_FAILURE, errno, _("setting flags for %s"), quoteaf (name));
         }
 
-      if ((desired_flags & O_NOLINKS) && 1 < st.st_nlink)
+      if ((new_flags & O_NOLINKS) && st.st_nlink > 1)
         {
           errno = EMLINK;
           error (EXIT_FAILURE, errno, _("setting flags for %s"), quoteaf (name));
         }
 
-      desired_flags &= ~ (O_DIRECTORY | O_NOLINKS);
+      new_flags &= ~(O_DIRECTORY | O_NOLINKS);
     }
 
-  if (desired_flags == old_flags)
-    return;
-
-  if (fcntl (fd, F_SETFL, desired_flags) == -1)
+  if (old_flags != new_flags && fcntl (fd, F_SETFL, new_flags) == -1)
     error (EXIT_FAILURE, errno, _("setting flags for %s"), quoteaf (name));
 }
 
@@ -2300,6 +2232,7 @@ dd_copy (void)
   idx_t partread = 0;
   int exit_status = EXIT_SUCCESS;
   idx_t n_bytes_read;
+  int saved_byte = -1;
 
   if (skip_records != 0 || skip_bytes != 0)
     {
@@ -2310,27 +2243,29 @@ dd_copy (void)
       off_t input_offset0 = input_offset;
       intmax_t us_blocks = skip (STDIN_FILENO, input_file,
                                  skip_records, input_blocksize, &skip_bytes);
-      bool cannot_skip_to_offset =
-        (us_blocks
-         || (0 <= input_offset
-             && (us_bytes_overflow
-                 || us_bytes != input_offset - input_offset0)));
 
-      if (cannot_skip_to_offset && status_level != STATUS_NONE)
-        diagnose (0, _("%s: cannot skip to specified offset"),
-                  quotef (input_file));
+      if ((us_blocks
+           || (0 <= input_offset
+               && (us_bytes_overflow
+                   || us_bytes != input_offset - input_offset0)))
+          && status_level != STATUS_NONE)
+        {
+          diagnose (0, _("%s: cannot skip to specified offset"),
+                    quotef (input_file));
+        }
     }
 
   if (seek_records != 0 || seek_bytes != 0)
     {
       idx_t bytes = seek_bytes;
       intmax_t write_records = skip (STDOUT_FILENO, output_file,
-                                     seek_records, output_blocksize, &bytes);
+                                      seek_records, output_blocksize, &bytes);
 
       if (write_records != 0 || bytes != 0)
         {
           memset (obuf, 0, write_records ? output_blocksize : bytes);
-          while (write_records || bytes)
+
+          do
             {
               idx_t size = write_records ? output_blocksize : bytes;
               if (iwrite (STDOUT_FILENO, obuf, size) != size)
@@ -2338,11 +2273,13 @@ dd_copy (void)
                   diagnose (errno, _("writing to %s"), quoteaf (output_file));
                   quit (EXIT_FAILURE);
                 }
-              if (write_records)
+
+              if (write_records != 0)
                 write_records--;
               else
                 bytes = 0;
             }
+          while (write_records || bytes);
         }
     }
 
@@ -2351,9 +2288,8 @@ dd_copy (void)
 
   alloc_ibuf ();
   alloc_obuf ();
-  int saved_byte = -1;
 
-  for (;;)
+  while (r_partial + r_full < max_records + !!max_bytes)
     {
       if (status_level == STATUS_PROGRESS)
         {
@@ -2365,16 +2301,15 @@ dd_copy (void)
             }
         }
 
-      if (r_partial + r_full >= max_records + !!max_bytes)
-        break;
-
       if ((conversions_mask & C_SYNC) && (conversions_mask & C_NOERROR))
         memset (ibuf,
                 (conversions_mask & (C_BLOCK | C_UNBLOCK)) ? ' ' : '\0',
                 input_blocksize);
 
-      idx_t read_size = (r_partial + r_full >= max_records) ? max_bytes : input_blocksize;
-      nread = iread_fnc (STDIN_FILENO, ibuf, read_size);
+      if (r_partial + r_full >= max_records)
+        nread = iread_fnc (STDIN_FILENO, ibuf, max_bytes);
+      else
+        nread = iread_fnc (STDIN_FILENO, ibuf, input_blocksize);
 
       if (nread > 0)
         {
@@ -2397,7 +2332,9 @@ dd_copy (void)
             {
               print_stats ();
               idx_t bad_portion = input_blocksize - partread;
+
               invalidate_cache (STDIN_FILENO, bad_portion);
+
               if (!advance_input_after_read_error (bad_portion))
                 {
                   exit_status = EXIT_FAILURE;
@@ -2487,7 +2424,9 @@ dd_copy (void)
     }
 
   if (col && (conversions_mask & C_UNBLOCK))
-    output_char (newline_character);
+    {
+      output_char (newline_character);
+    }
 
   if (oc != 0)
     {
@@ -2544,13 +2483,10 @@ static int
 synchronize_output (void)
 {
   int exit_status = 0;
-  const int original_mask = conversions_mask;
-  const int need_fdatasync = (original_mask & C_FDATASYNC) != 0;
-  int need_fsync = (original_mask & C_FSYNC) != 0;
+  int mask = conversions_mask;
+  conversions_mask &= ~(C_FDATASYNC | C_FSYNC);
 
-  conversions_mask &= ~ (C_FDATASYNC | C_FSYNC);
-
-  if (need_fdatasync)
+  if (mask & C_FDATASYNC)
     {
       if (ifdatasync (STDOUT_FILENO) != 0)
         {
@@ -2559,151 +2495,172 @@ synchronize_output (void)
               diagnose (errno, _("fdatasync failed for %s"), quoteaf (output_file));
               exit_status = EXIT_FAILURE;
             }
-          need_fsync = 1;
+          mask |= C_FSYNC;
         }
     }
 
-  if (need_fsync)
+  if (mask & C_FSYNC)
     {
       if (ifsync (STDOUT_FILENO) != 0)
         {
           diagnose (errno, _("fsync failed for %s"), quoteaf (output_file));
-          return EXIT_FAILURE;
+          exit_status = EXIT_FAILURE;
         }
     }
 
   return exit_status;
 }
 
-int main(int argc, char **argv)
+int
+main (int argc, char **argv)
 {
-  int exit_status = EXIT_SUCCESS;
+  int i;
+  int exit_status;
+  off_t offset;
 
-  install_signal_handlers();
+  install_signal_handlers ();
 
-  initialize_main(&argc, &argv);
-  set_program_name(argv[0]);
-  setlocale(LC_ALL, "");
-  bindtextdomain(PACKAGE, LOCALEDIR);
-  textdomain(PACKAGE);
+  initialize_main (&argc, &argv);
+  set_program_name (argv[0]);
+  setlocale (LC_ALL, "");
+  bindtextdomain (PACKAGE, LOCALEDIR);
+  textdomain (PACKAGE);
 
-  atexit(maybe_close_stdout);
+  atexit (maybe_close_stdout);
 
-  page_size = getpagesize();
+  page_size = getpagesize ();
 
-  parse_gnu_standard_options_only(argc, argv, PROGRAM_NAME, PACKAGE, Version,
-                                  true, usage, AUTHORS, (char const *) nullptr);
+  parse_gnu_standard_options_only (argc, argv, PROGRAM_NAME, PACKAGE, Version,
+                                   true, usage, AUTHORS,
+                                   (char const *) nullptr);
   close_stdout_required = false;
 
-  for (int i = 0; i < 256; i++)
+  for (i = 0; i < 256; i++)
     trans_table[i] = i;
 
-  scanargs(argc, argv);
+  scanargs (argc, argv);
 
-  apply_translations();
+  apply_translations ();
 
   if (input_file == nullptr)
     {
       input_file = _("standard input");
-      set_fd_flags(STDIN_FILENO, input_flags, input_file);
+      set_fd_flags (STDIN_FILENO, input_flags, input_file);
     }
   else
     {
-      if (ifd_reopen(STDIN_FILENO, input_file, O_RDONLY | input_flags, 0) < 0)
-        error(EXIT_FAILURE, errno, _("failed to open %s"), quoteaf(input_file));
+      if (ifd_reopen (STDIN_FILENO, input_file, O_RDONLY | input_flags, 0) < 0)
+        error (EXIT_FAILURE, errno, _("failed to open %s"),
+               quoteaf (input_file));
     }
 
-  {
-    off_t offset = lseek(STDIN_FILENO, 0, SEEK_CUR);
-    input_seekable = (0 <= offset);
-    input_offset = MAX(0, offset);
-    input_seek_errno = errno;
-  }
+  offset = lseek (STDIN_FILENO, 0, SEEK_CUR);
+  input_seekable = (0 <= offset);
+  input_offset = MAX (0, offset);
+  input_seek_errno = errno;
 
   if (output_file == nullptr)
     {
       output_file = _("standard output");
-      set_fd_flags(STDOUT_FILENO, output_flags, output_file);
+      set_fd_flags (STDOUT_FILENO, output_flags, output_file);
     }
   else
     {
-      const mode_t perms = MODE_RW_UGO;
-      const int opts
-        = (output_flags
-           | ((conversions_mask & C_NOCREAT) ? 0 : O_CREAT)
-           | ((conversions_mask & C_EXCL) ? O_EXCL : 0)
-           | ((seek_records || (conversions_mask & C_NOTRUNC)) ? 0 : O_TRUNC));
+      mode_t perms = MODE_RW_UGO;
+      int opts = output_flags;
+      
+      if (!(conversions_mask & C_NOCREAT))
+        opts |= O_CREAT;
+      if (conversions_mask & C_EXCL)
+        opts |= O_EXCL;
+      if (!seek_records && !(conversions_mask & C_NOTRUNC))
+        opts |= O_TRUNC;
 
-      off_t size;
-      if ((ckd_mul(&size, seek_records, output_blocksize)
-           || ckd_add(&size, seek_bytes, size))
-          && !(conversions_mask & C_NOTRUNC))
-        error(EXIT_FAILURE, 0,
-              _("offset too large: cannot truncate to a length of seek=%jd (%td-byte) blocks"),
-              seek_records, output_blocksize);
+      off_t size = 0;
+      bool size_overflow = false;
+      
+      if (seek_records != 0 || seek_bytes != 0)
+        {
+          size_overflow = ckd_mul (&size, seek_records, output_blocksize) ||
+                         ckd_add (&size, seek_bytes, size);
+        }
+      
+      if (size_overflow && !(conversions_mask & C_NOTRUNC))
+        error (EXIT_FAILURE, 0,
+               _("offset too large: "
+                 "cannot truncate to a length of seek=%jd"
+                 " (%td-byte) blocks"),
+               seek_records, output_blocksize);
 
-      if ((!seek_records
-           || ifd_reopen(STDOUT_FILENO, output_file, O_RDWR | opts, perms) < 0)
-          && (ifd_reopen(STDOUT_FILENO, output_file, O_WRONLY | opts, perms) < 0))
-        error(EXIT_FAILURE, errno, _("failed to open %s"), quoteaf(output_file));
+      bool opened = false;
+      if (seek_records)
+        opened = (ifd_reopen (STDOUT_FILENO, output_file, O_RDWR | opts, perms) >= 0);
+      
+      if (!opened)
+        {
+          if (ifd_reopen (STDOUT_FILENO, output_file, O_WRONLY | opts, perms) < 0)
+            error (EXIT_FAILURE, errno, _("failed to open %s"),
+                   quoteaf (output_file));
+        }
 
       if (seek_records != 0 && !(conversions_mask & C_NOTRUNC))
         {
-          if (iftruncate(STDOUT_FILENO, size) != 0)
+          if (iftruncate (STDOUT_FILENO, size) != 0)
             {
               int ftruncate_errno = errno;
               struct stat stdout_stat;
-              if (ifstat(STDOUT_FILENO, &stdout_stat) != 0)
+              if (ifstat (STDOUT_FILENO, &stdout_stat) != 0)
                 {
-                  diagnose(errno, _("cannot fstat %s"), quoteaf(output_file));
+                  diagnose (errno, _("cannot fstat %s"), quoteaf (output_file));
                   exit_status = EXIT_FAILURE;
                 }
-              else if (S_ISREG(stdout_stat.st_mode)
-                       || S_ISDIR(stdout_stat.st_mode)
-                       || S_TYPEISSHM(&stdout_stat))
+              else if (S_ISREG (stdout_stat.st_mode) ||
+                       S_ISDIR (stdout_stat.st_mode) ||
+                       S_TYPEISSHM (&stdout_stat))
                 {
                   intmax_t isize = size;
-                  diagnose(ftruncate_errno,
-                           _("failed to truncate to %jd bytes in output file %s"),
-                           isize, quoteaf(output_file));
+                  diagnose (ftruncate_errno,
+                            _("failed to truncate to %jd bytes"
+                              " in output file %s"),
+                            isize, quoteaf (output_file));
                   exit_status = EXIT_FAILURE;
                 }
             }
         }
     }
 
-  start_time = gethrxtime();
+  start_time = gethrxtime ();
   next_time = start_time + XTIME_PRECISION;
 
-  exit_status = dd_copy();
+  exit_status = dd_copy ();
 
-  {
-    int sync_status = synchronize_output();
-    if (sync_status)
-      exit_status = sync_status;
-  }
+  int sync_status = synchronize_output ();
+  if (sync_status)
+    exit_status = sync_status;
 
   if (max_records == 0 && max_bytes == 0)
     {
-      if (i_nocache && !invalidate_cache(STDIN_FILENO, 0))
+      if (i_nocache && !invalidate_cache (STDIN_FILENO, 0))
         {
-          diagnose(errno, _("failed to discard cache for: %s"), quotef(input_file));
+          diagnose (errno, _("failed to discard cache for: %s"),
+                    quotef (input_file));
           exit_status = EXIT_FAILURE;
         }
-      if (o_nocache && !invalidate_cache(STDOUT_FILENO, 0))
+      if (o_nocache && !invalidate_cache (STDOUT_FILENO, 0))
         {
-          diagnose(errno, _("failed to discard cache for: %s"), quotef(output_file));
+          diagnose (errno, _("failed to discard cache for: %s"),
+                    quotef (output_file));
           exit_status = EXIT_FAILURE;
         }
     }
   else
     {
       if (i_nocache || i_nocache_eof)
-        invalidate_cache(STDIN_FILENO, 0);
+        invalidate_cache (STDIN_FILENO, 0);
       if (o_nocache || o_nocache_eof)
-        invalidate_cache(STDOUT_FILENO, 0);
+        invalidate_cache (STDOUT_FILENO, 0);
     }
 
-  finish_up();
-  main_exit(exit_status);
+  finish_up ();
+  main_exit (exit_status);
 }
